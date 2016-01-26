@@ -2,6 +2,7 @@
 
 namespace frontend\controllers;
 
+use Aws\CloudFront\Exception\Exception;
 use Yii;
 use frontend\models\Ticket;
 use yii\data\ActiveDataProvider;
@@ -41,19 +42,23 @@ class TicketController extends Controller
     public function actions()
     {
         return [
-            'avatar-upload' => [
-                'class' => UploadAction::className(),
-                'deleteRoute' => 'avatar-delete',
-                'on afterSave' => function ($event) {
-                        /* @var $file \League\Flysystem\File */
-                        $file = $event->file;
-                        $img = ImageManagerStatic::make($file->read())->fit(215, 215);
-                        $file->put($img->encode());
-                    }
+            'upload' => [
+                'class' => 'trntv\filekit\actions\UploadAction',
+                'deleteRoute' => 'upload-delete'
             ],
-            'avatar-delete' => [
-                'class' => DeleteAction::className()
-            ]
+//            'upload' => [
+//                'class' => UploadAction::className(),
+//                'deleteRoute' => 'avatar-delete',
+//                'on afterSave' => function ($event) {
+//                        /* @var $file \League\Flysystem\File */
+//                        $file = $event->file;
+//                        $img = ImageManagerStatic::make($file->read())->fit(215, 215);
+//                        $file->put($img->encode());
+//                    }
+//            ],
+//            'avatar-delete' => [
+//                'class' => DeleteAction::className()
+//            ]
         ];
     }
 
@@ -110,14 +115,12 @@ class TicketController extends Controller
     {
         $ticketModel = new Ticket();
         $ticketCdataModel = new TicketCdata();
-        $fileModel = new File();
 
         if(Yii::$app->request->post()){
 
-//            echo "<pre>";
-//            print_r(Yii::$app->request->post('File'));exit;
             $ticketForm = Yii::$app->request->post('Ticket');
             $ticketCdataForm = Yii::$app->request->post('TicketCdata');
+            $fileForm = Yii::$app->request->post('File');
 
             $ticketModel->number = $ticketModel->newTicketNumber();
             $ticketModel->user_id = Yii::$app->user->identity->id;
@@ -134,18 +137,45 @@ class TicketController extends Controller
             $ticketCdataModel->subject = $ticketCdataForm['subject'];
             $ticketCdataModel->detail = $ticketCdataForm['detail'];
             $ticketCdataModel->priority = 1;
-            if($ticketModel->save()){
-                $ticketCdataModel->ticket_id = $ticketModel->ticket_id;
-                if($ticketCdataModel->save()){
-                    return $this->redirect(array('detail', 'number'=>$ticketModel->number));
+
+            //事务
+            $connection = Yii::$app->db;
+            $transaction = $connection->beginTransaction();
+            try{
+                if(!$ticketModel->save()){
+                    throw new Exception("数据存储失败，请检查数据库配置(error:1001)");
                 }
+                $ticketCdataModel->ticket_id = $ticketModel->ticket_id;
+                if(!$ticketCdataModel->save()){
+                    throw new Exception("数据存储失败，请检查数据库配置(error:1002)");
+                }
+                if(!empty($fileForm['file_index']) && is_array($fileForm['file_index'])){
+                    foreach($fileForm['file_index'] as $k=>$v){
+                        $fileModel = new File();
+                        $fileModel->attribute = 'tickets';
+                        $fileModel->attribute_id = $ticketModel->ticket_id;
+                        $fileModel->file_name = $v['name'];
+                        $fileModel->file_index = $v['path'];
+                        $fileModel->size = $v['size'];
+                        $fileModel->type = $v['type'];
+                        if(!$fileModel->save()){
+                            throw new Exception("数据存储失败，请检查数据库配置(error:1003)");
+                        }
+                    }
+                }
+                $transaction->commit();
+            }catch (Exception $e){
+                $transaction->rollBack();
+                return $this->redirect(array('add_ticket'));
             }
-            return $this->redirect(array('add_ticket'));
+
+            return $this->redirect(array('detail', 'number'=>$ticketModel->number));
 
 
         }else{
             $topicModel = new TicketTopic();
             $topic_list = $topicModel->find()->select(array('topic_name','topic_id'))->indexBy('topic_id')->column();
+            $fileModel = new File();
 
             return $this->render('add_ticket',array(
                 'ticketModel' => $ticketModel,

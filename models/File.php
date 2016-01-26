@@ -12,6 +12,8 @@ use Yii;
  * @property integer $attribute_id
  * @property string $file_name
  * @property string $file_index
+ * @property string $size
+ * @property string $type
  * @property string $created
  */
 class File extends \yii\db\ActiveRecord
@@ -32,7 +34,7 @@ class File extends \yii\db\ActiveRecord
         return [
             [['attribute_id'], 'integer'],
             [['created'], 'safe'],
-            [['attribute'], 'string', 'max' => 16],
+            [['attribute', 'size', 'type'], 'string', 'max' => 16],
             [['file_name', 'file_index'], 'string', 'max' => 255]
         ];
     }
@@ -48,6 +50,8 @@ class File extends \yii\db\ActiveRecord
             'attribute_id' => Yii::t('app', 'Attribute ID'),
             'file_name' => Yii::t('app', 'File Name'),
             'file_index' => Yii::t('app', 'File Index'),
+            'size' => Yii::t('app', 'Size'),
+            'type' => Yii::t('app', 'Type'),
             'created' => Yii::t('app', 'Created'),
         ];
     }

@@ -31,7 +31,7 @@ $this->params['breadcrumbs'][] = $this->title;
         <?php echo $form->field($fileModel, 'file_index')->widget(
             Upload::className(),
             [
-                'url' => ['avatar-upload'],
+                'url' => ['upload'],
                 'sortable' => true,
                 'maxFileSize' => 10000000, // 10 MiB
                 'maxNumberOfFiles' => 10
