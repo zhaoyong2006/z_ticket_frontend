@@ -124,7 +124,7 @@ class TicketController extends Controller
 
             $ticketModel->number = $ticketModel->newTicketNumber();
             $ticketModel->user_id = Yii::$app->user->identity->id;
-            $ticketModel->status_id = 0;
+            $ticketModel->status_id = 1;
             $ticketModel->type_id = Ticket::FEEDBACK_TICKET_TYPE;
             $ticketModel->topic_id = $ticketForm['topic_id'];
             $ticketModel->staff_id = 0;
@@ -194,22 +194,36 @@ class TicketController extends Controller
      */
     public function actionDetail($number){
 
-        $ticket_detail = Ticket::find()->where(array('number'=>$number,'user_id'=>Yii::$app->user->identity->id))->asArray()->one();
-        if(empty($ticket_detail)){
-           throw new BadRequestHttpException("该工单号不存在");
-        }
-
-        $topic_detail = TicketTopic::findOne(array('topic_id'=>$ticket_detail['topic_id']));
-
-        $ticket_detail['topic_name'] = $topic_detail->topic_name;
-
-        $cdata_detail = TicketCdata::findOne(array('ticket_id'=>$ticket_detail['ticket_id']));
-        $ticket_detail['subject'] = $cdata_detail->subject;
-        $ticket_detail['detail'] = $cdata_detail->detail;
+        $ticket_detail = Ticket::find()
+            ->joinWith('cdata')
+            ->joinWith('topic')
+            ->joinWith('status')
+            ->joinWith('file')
+            ->where(array('number' => $number))
+            ->asArray()
+            ->one();
 
         return $this->render('detail',array(
             'ticket_detail' => $ticket_detail,
         ));
+    }
+
+    /**
+     * @param $id
+     * @return $this
+     * @throws \yii\web\NotFoundHttpException
+     */
+    public function actionAttachmentDownload($id)
+    {
+        $model = File::findOne($id);
+        if (!$model) {
+            throw new NotFoundHttpException;
+        }
+
+        return \Yii::$app->response->sendStreamAsFile(
+            \Yii::$app->fileStorage->getFilesystem()->readStream($model->file_index),
+            $model->file_name
+        );
     }
 
     public function actionList(){

@@ -113,4 +113,10 @@ class Ticket extends \yii\db\ActiveRecord
     {
         return $this->hasOne(TicketStatus::className(), array('status_id' => 'status_id'));
     }
+
+    public function getFile()
+    {
+        //TODO 修改表结构 不允许 attribute = tickets 情形
+        return $this->hasMany(File::className(), array('attribute_id'=>'ticket_id'));
+    }
 }
