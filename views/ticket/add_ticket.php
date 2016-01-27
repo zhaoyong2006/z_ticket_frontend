@@ -7,6 +7,7 @@ use trntv\filekit\widget\Upload;
 /* @var $ticketModel */
 /* @var $ticketCdataModel */
 /* @var $fileModel */
+/* @var $ticketTopicRelationModel */
 /* @var $topic_list */
 
 $this->title = '创建';
@@ -18,10 +19,9 @@ $this->params['breadcrumbs'][] = $this->title;
     <div>
         <?php $form = ActiveForm::begin();?>
 
-
-
-        <?= $form->field($ticketModel, 'topic_id')->dropDownList(
-            $topic_list,array('prompt'=>"请选择分类")
+        <?= $form->field($ticketTopicRelationModel, 'topic_id',array('labelOptions'=>array('label' => "选择话题", 'class'=>"myOption")))
+            ->checkboxList(
+            $topic_list
         )?>
 
         <?= $form->field($ticketCdataModel, 'subject')->textInput()?>

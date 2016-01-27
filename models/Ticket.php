@@ -104,9 +104,9 @@ class Ticket extends \yii\db\ActiveRecord
         return $this->hasOne(TicketCdata::className(), array('ticket_id' => 'ticket_id'));
     }
 
-    public function getTopic()
+    public function getTicketTopic()
     {
-        return $this->hasOne(TicketTopic::className(), array('topic_id' => 'topic_id'));
+        return $this->hasMany(TicketTopicRelation::className(), array('ticket_id' => 'ticket_id'));
     }
 
     public function getStatus()

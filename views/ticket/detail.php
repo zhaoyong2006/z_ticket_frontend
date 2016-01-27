@@ -4,6 +4,7 @@ use yii\helpers\Html;
 
 /* @var $ticket_detail*/
 /* @var $attachment*/
+/* @var $topics*/
 
 $this->title = $ticket_detail['cdata']['subject'];
 $this->params['breadcrumbs'][] = ['label' => 'Tickets', 'url' => ['list']];
@@ -13,7 +14,9 @@ $this->params['breadcrumbs'][] = $this->title;
 <div class="content">
     <article>
         <h3><?= Html::encode($this->title)?></h3>
-        <span class="label label-info"><?= $ticket_detail['topic']['topic_name']?></span>
+        <?php foreach($topics as $topic): ?>
+        <span class="label label-info"><?= $topic['topic']['topic_name']?></span>
+        <?php endforeach;?>
         <br/><br/>
         概述:
         <p><?= $ticket_detail['cdata']['subject']?></p>

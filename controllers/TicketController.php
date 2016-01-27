@@ -12,12 +12,10 @@ use yii\filters\VerbFilter;
 
 use frontend\models\TicketCdata;
 use frontend\models\TicketTopic;
+use frontend\models\TicketTopicRelation;
 use yii\web\BadRequestHttpException;
 use yii\db\Query;
 use frontend\models\File;
-use Intervention\Image\ImageManagerStatic;
-use trntv\filekit\actions\DeleteAction;
-use trntv\filekit\actions\UploadAction;
 
 /**
  * TicketController implements the CRUD actions for Ticket model.
@@ -46,19 +44,16 @@ class TicketController extends Controller
                 'class' => 'trntv\filekit\actions\UploadAction',
                 'deleteRoute' => 'upload-delete'
             ],
-//            'upload' => [
-//                'class' => UploadAction::className(),
-//                'deleteRoute' => 'avatar-delete',
-//                'on afterSave' => function ($event) {
-//                        /* @var $file \League\Flysystem\File */
-//                        $file = $event->file;
-//                        $img = ImageManagerStatic::make($file->read())->fit(215, 215);
-//                        $file->put($img->encode());
-//                    }
-//            ],
-//            'avatar-delete' => [
-//                'class' => DeleteAction::className()
-//            ]
+            'upload-delete' => [
+                'class' => 'trntv\filekit\actions\DeleteAction'
+            ],
+            'upload-imperavi' => [
+                'class' => 'trntv\filekit\actions\UploadAction',
+                'fileparam' => 'file',
+                'responseUrlParam'=> 'filelink',
+                'multiple' => false,
+                'disableCsrf' => true
+            ]
         ];
     }
 
@@ -121,12 +116,13 @@ class TicketController extends Controller
             $ticketForm = Yii::$app->request->post('Ticket');
             $ticketCdataForm = Yii::$app->request->post('TicketCdata');
             $fileForm = Yii::$app->request->post('File');
+            $ticketTopicRelationForm = Yii::$app->request->post('TicketTopicRelation');
 
             $ticketModel->number = $ticketModel->newTicketNumber();
             $ticketModel->user_id = Yii::$app->user->identity->id;
             $ticketModel->status_id = 1;
             $ticketModel->type_id = Ticket::FEEDBACK_TICKET_TYPE;
-            $ticketModel->topic_id = $ticketForm['topic_id'];
+            //$ticketModel->topic_id = $ticketForm['topic_id'];
             $ticketModel->staff_id = 0;
             $ticketModel->team_id = 0;
             $ticketModel->source_id = 1;
@@ -152,7 +148,7 @@ class TicketController extends Controller
                 if(!empty($fileForm['file_index']) && is_array($fileForm['file_index'])){
                     foreach($fileForm['file_index'] as $k=>$v){
                         $fileModel = new File();
-                        $fileModel->attribute = 'tickets';
+                        $fileModel->attribute = Ticket::tableName();
                         $fileModel->attribute_id = $ticketModel->ticket_id;
                         $fileModel->file_name = $v['name'];
                         $fileModel->file_index = $v['path'];
@@ -160,6 +156,16 @@ class TicketController extends Controller
                         $fileModel->type = $v['type'];
                         if(!$fileModel->save()){
                             throw new Exception("数据存储失败，请检查数据库配置(error:1003)");
+                        }
+                    }
+                }
+                if(!empty($ticketTopicRelationForm['topic_id']) && is_array($ticketTopicRelationForm['topic_id'])){
+                    foreach($ticketTopicRelationForm['topic_id'] as $v){
+                        $ticketTopicRelationModel = new TicketTopicRelation();
+                        $ticketTopicRelationModel->ticket_id = $ticketModel->ticket_id;
+                        $ticketTopicRelationModel->topic_id = $v;
+                        if(!$ticketTopicRelationModel->save()){
+                            throw new Exception("数据存储失败，请检查数据库配置(error:1004)");
                         }
                     }
                 }
@@ -176,11 +182,13 @@ class TicketController extends Controller
             $topicModel = new TicketTopic();
             $topic_list = $topicModel->find()->select(array('topic_name','topic_id'))->indexBy('topic_id')->column();
             $fileModel = new File();
+            $ticketTopicRelationModel = new TicketTopicRelation();
 
             return $this->render('add_ticket',array(
                 'ticketModel' => $ticketModel,
                 'ticketCdataModel' => $ticketCdataModel,
                 'fileModel' => $fileModel,
+                'ticketTopicRelationModel' => $ticketTopicRelationModel,
                 'topic_list' => $topic_list
             ));
         }
@@ -196,14 +204,23 @@ class TicketController extends Controller
 
         $ticket_detail = Ticket::find()
             ->joinWith('cdata')
-            ->joinWith('topic')
+            //->joinWith('topic')
             ->joinWith('status')
             ->where(array('number' => $number));
 
         $attachments = $ticket_detail->one()->file;
+        $ticket_detail_arr = $ticket_detail->asArray()->one();
+
+        $topics = TicketTopicRelation::find()
+            ->joinWith('topic')
+            ->where(array('ticket_id'=>$ticket_detail_arr['ticket_id']))
+            ->asArray()
+            ->all();
+
         return $this->render('detail',array(
-            'ticket_detail' => $ticket_detail->asArray()->one(),
+            'ticket_detail' => $ticket_detail_arr,
             'attachments' => $attachments,
+            'topics' => $topics
         ));
     }
 
@@ -229,7 +246,6 @@ class TicketController extends Controller
         $dataProvider = new ActiveDataProvider([
             'query' => Ticket::find()
                     ->joinWith('cdata')
-                    ->joinWith('topic')
                     ->joinWith('status')
                     ->where(array('user_id' => Yii::$app->user->identity->id))
 //                    ->asArray()
