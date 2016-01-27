@@ -3,6 +3,7 @@
 use yii\helpers\Html;
 
 /* @var $ticket_detail*/
+/* @var $attachment*/
 
 $this->title = $ticket_detail['cdata']['subject'];
 $this->params['breadcrumbs'][] = ['label' => 'Tickets', 'url' => ['list']];
@@ -19,10 +20,10 @@ $this->params['breadcrumbs'][] = $this->title;
         详情:
         <p><?= $ticket_detail['cdata']['detail']?></p>
 
-        <?php if (!empty($ticket_detail['file'])): ?>
+        <?php if (!empty($attachments)): ?>
             <h3><?php echo Yii::t('frontend', 'Attachments') ?></h3>
             <ul id="article-attachments">
-                <?php foreach ($ticket_detail['file'] as $attachment): ?>
+                <?php foreach ($attachments as $attachment): ?>
                     <li>
                         <?php echo \yii\helpers\Html::a(
                             $attachment['file_name'],

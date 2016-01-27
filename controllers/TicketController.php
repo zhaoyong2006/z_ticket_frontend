@@ -198,13 +198,12 @@ class TicketController extends Controller
             ->joinWith('cdata')
             ->joinWith('topic')
             ->joinWith('status')
-            ->joinWith('file')
-            ->where(array('number' => $number))
-            ->asArray()
-            ->one();
+            ->where(array('number' => $number));
 
+        $attachments = $ticket_detail->one()->file;
         return $this->render('detail',array(
-            'ticket_detail' => $ticket_detail,
+            'ticket_detail' => $ticket_detail->asArray()->one(),
+            'attachments' => $attachments,
         ));
     }
 

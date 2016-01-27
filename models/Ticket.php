@@ -116,7 +116,7 @@ class Ticket extends \yii\db\ActiveRecord
 
     public function getFile()
     {
-        //TODO 修改表结构 不允许 attribute = tickets 情形
-        return $this->hasMany(File::className(), array('attribute_id'=>'ticket_id'));
+        return $this->hasMany(File::className(), array('attribute_id'=>'ticket_id'))
+            ->where('attribute=:table_name',array('table_name'=>Ticket::tableName()));
     }
 }
