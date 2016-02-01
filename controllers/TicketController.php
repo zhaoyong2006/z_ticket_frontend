@@ -4,7 +4,7 @@ namespace frontend\controllers;
 
 use Aws\CloudFront\Exception\Exception;
 use Yii;
-use frontend\models\Ticket;
+use common\models\Ticket;
 use yii\data\ActiveDataProvider;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
@@ -13,9 +13,8 @@ use yii\filters\VerbFilter;
 use frontend\models\TicketCdata;
 use frontend\models\TicketTopic;
 use frontend\models\TicketTopicRelation;
-use yii\web\BadRequestHttpException;
-use yii\db\Query;
 use frontend\models\File;
+use common\models\TicketStatus;
 
 /**
  * TicketController implements the CRUD actions for Ticket model.
@@ -120,11 +119,8 @@ class TicketController extends Controller
 
             $ticketModel->number = $ticketModel->newTicketNumber();
             $ticketModel->user_id = Yii::$app->user->identity->id;
-            $ticketModel->status_id = 1;
+            $ticketModel->status_id = TicketStatus::CREATED;
             $ticketModel->type_id = Ticket::FEEDBACK_TICKET_TYPE;
-            //$ticketModel->topic_id = $ticketForm['topic_id'];
-            $ticketModel->staff_id = 0;
-            $ticketModel->team_id = 0;
             $ticketModel->source_id = 1;
             $ticketModel->ip_address = Yii::$app->request->getUserIP();
             $ticketModel->created = date("Y-m-d H:i:s");
@@ -204,8 +200,6 @@ class TicketController extends Controller
 
         $ticket_detail = Ticket::find()
             ->joinWith('cdata')
-            //->joinWith('topic')
-            ->joinWith('status')
             ->where(array('number' => $number));
 
         $attachments = $ticket_detail->one()->file;
@@ -246,10 +240,10 @@ class TicketController extends Controller
         $dataProvider = new ActiveDataProvider([
             'query' => Ticket::find()
                     ->joinWith('cdata')
-                    ->joinWith('status')
-                    ->where(array('user_id' => Yii::$app->user->identity->id))
-//                    ->asArray()
-//                    ->all(),
+                    ->where(array('user_id' => Yii::$app->user->identity->id)),
+            'pagination'=>array(
+                'pageSize'=>5,
+            )
         ]);
         return $this->render('list', [
             'dataProvider' => $dataProvider,

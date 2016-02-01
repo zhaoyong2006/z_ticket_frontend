@@ -3,6 +3,7 @@
 use yii\helpers\Html;
 use yii\grid\GridView;
 use yii\helpers\Url;
+use common\models\TicketStatus;
 
 
 /* @var $this yii\web\View */
@@ -22,23 +23,17 @@ $this->params['breadcrumbs'][] = $this->title;
         'dataProvider' => $dataProvider,
         'columns' => [
             ['class' => 'yii\grid\SerialColumn'],
-
-//            'ticket_id',
             'number',
-//            'user_id',
-//            'status_id',
-//            'type_id',
-//            'topic_id',
             'cdata.subject',
             'cdata.detail',
-            'status.name:text:当前状态',
-            //'staff_id',
-            // 'team_id',
-            // 'ip_address',
-            // 'source_id',
-//            'topic.topic_name',
-             'created:datetime:提交时间',
-            // 'updated',
+            [
+                'attribute' => 'status_id',
+                'value' => function($model){
+                        $status_map = TicketStatus::$status_map;
+                        return isset($status_map[$model->status_id]) ? $status_map[$model->status_id]['name'] : '';
+                    }
+            ],
+            'created:datetime:提交时间',
             [
                 'class' => 'yii\grid\ActionColumn',
                 'content' => '你好',
